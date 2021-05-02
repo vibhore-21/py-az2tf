@@ -252,7 +252,7 @@ Within the runbook directory you'll file a file az2tf-runbook.py
 
 You can paste this code into an Azure python2 runbook, your automation account must have an Azure ARM Runas credential setup.
 
-When runs it will leave you subscriptions terraform and terraform import caommands in the runbook output window
+When runs it will leave you subscriptions terraform and terraform import commands in the runbook output window
 
 *Unfortunately this only works for small subscriptions as Azure currently has a limit on how much output it will show in a runbook output window. If your output window is blank az2tf has probably worked (see the All Logs tab) but the amount of output has exceeded Azure's limit.*
 

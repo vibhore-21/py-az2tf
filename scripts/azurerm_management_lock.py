@@ -1,50 +1,50 @@
 import uuid
-def azurerm_management_lock(crf,cde,crg,headers,requests,sub,json,az2tfmess,cldurl):
+
+
+def azurerm_management_lock(crf, cde, crg, headers, requests, sub, json, az2tfmess, cldurl):
     # management locks
-    
-    tfp="azurerm_management_lock"
-    azr=""
-    if crf in tfp:
+
+    terraform_resource_name = "azurerm_management_lock"
+    azr = ""
+    if crf in terraform_resource_name:
         # REST
         # # print "REST VNets"
-        url="https://" + cldurl + "/subscriptions/" + sub + "/providers/Microsoft.Authorization/locks"
+        url = "https://" + cldurl + "/subscriptions/" + sub + "/providers/Microsoft.Authorization/locks"
         params = {'api-version': '2017-04-01'}
         r = requests.get(url, headers=headers, params=params)
-        azr= r.json()["value"]
+        azr = r.json()["value"]
 
-        tfrmf="002-"+tfp+"-staterm.sh"
-        tfimf="002-"+tfp+"-stateimp.sh"
-        tfrm=open(tfrmf, 'a')
-        tfim=open(tfimf, 'a')
-        print ("# " + tfp,)
-        count=len(azr)
-        print (count)
+        tfrmf = "002-" + terraform_resource_name + "-staterm.sh"
+        tfimf = "002-" + terraform_resource_name + "-stateimp.sh"
+        tfrm = open(tfrmf, 'a')
+        tfim = open(tfimf, 'a')
+        print("# " + terraform_resource_name, )
+        count = len(azr)
+        print(count)
         for j in range(0, count):
-            
-            name=azr[j]["name"]
-        
-            #name=name.encode('utf-8', 'ignore')
-           
-            #loc=azr[j]["location"]
-            id=azr[j]["id"]
-            rg=id.split("/")[4].replace(".","-").lower()
-            if rg[0].isdigit(): rg="rg_"+rg
-            rgs=id.split("/")[4]
-           
-            level=azr[j]["properties"]["level"]
-         
-            scope1=id.split("/Microsoft.Authorization")[0].rstrip("providers")
-            
-            scope=scope1.rstrip("/")
-            sc=len(scope.split("/"))
-            #print sc
-            sn=scope.split("/")[sc-1].replace(" ","-").lower()
-            sn=sn.replace(".","-")
 
-            #scope=scope.encode('utf-8', 'ignore')
-            #sn=sn.encode('utf-8', 'ignore')
-            
-         
+            name = azr[j]["name"]
+
+            # name=name.encode('utf-8', 'ignore')
+
+            # loc=azr[j]["location"]
+            id = azr[j]["id"]
+            rg = id.split("/")[4].replace(".", "-").lower()
+            if rg[0].isdigit(): rg = "rg_" + rg
+            rgs = id.split("/")[4]
+
+            level = azr[j]["properties"]["level"]
+
+            scope1 = id.split("/Microsoft.Authorization")[0].rstrip("providers")
+
+            scope = scope1.rstrip("/")
+            sc = len(scope.split("/"))
+            # print sc
+            sn = scope.split("/")[sc - 1].replace(" ", "-").lower()
+            sn = sn.replace(".", "-")
+
+            # scope=scope.encode('utf-8', 'ignore')
+            # sn=sn.encode('utf-8', 'ignore')
 
             if crg is not None:
                 if rgs.lower() != crg.lower():
@@ -52,64 +52,62 @@ def azurerm_management_lock(crf,cde,crg,headers,requests,sub,json,az2tfmess,cldu
             if cde:
                 print(json.dumps(azr[j], indent=4, separators=(',', ': ')))
 
-            rname=name.replace(".","-")
-            rname=rname.replace("[","-")
-            rname=rname.replace("]","-")
-            rname=rname.replace(" ","_")
-            #try:
+            rname = name.replace(".", "-")
+            rname = rname.replace("[", "-")
+            rname = rname.replace("]", "-")
+            rname = rname.replace(" ", "_")
+            # try:
             #    rname=rname.encode('utf-8', 'ignore')
-            #except UnicodeDecodeError:
+            # except UnicodeDecodeError:
             #    print('Problem with the name of this item: '+name)
             #    print('Please rename this item in the Azure Portal')
             #    rname=str(uuid.uuid4())
             #    #rname=rname.encode('utf-8', 'ignore')
-                
-                 
+
             try:
-                prefix=tfp+"."+rg+'__'+rname+'__'+sn
+                prefix = terraform_resource_name + "." + rg + '__' + rname + '__' + sn
             except UnicodeDecodeError:
-                print('Problem with the scope name: '+scope)
+                print('Problem with the scope name: ' + scope)
                 print('Please rename this item in the Azure Portal')
-                sn=str(uuid.uuid4())
-                #sn=sn.encode('utf-8', 'ignore')
-                prefix=tfp+"."+rg+'__'+rname+'__'+sn
-            #prefix=tfp+"."+rg+'__'+rname
+                sn = str(uuid.uuid4())
+                # sn=sn.encode('utf-8', 'ignore')
+                prefix = terraform_resource_name + "." + rg + '__' + rname + '__' + sn
+            # prefix=tfp+"."+rg+'__'+rname
 
-
-            rfilename=prefix+".tf"
-            fr=open(rfilename, 'w')
-            fr.write('resource ' + tfp + ' "' + rg + '__' + rname + '__'+ sn +  '" {\n')
+            rfilename = prefix + ".tf"
+            fr = open(rfilename, 'w')
+            fr.write('resource ' + terraform_resource_name + ' "' + rg + '__' + rname + '__' + sn + '" {\n')
             fr.write('\t name = "' + name + '"\n')
-            fr.write('\t lock_level = "'+ level + '"\n')   
-            
+            fr.write('\t lock_level = "' + level + '"\n')
+
             try:
-                notes=azr[j]["properties"]["notes"]      
-                #notes=notes.encode('utf-8', 'ignore')
-                notes=notes.replace('"','\\"')          
-                fr.write('\t notes = "'+ notes + '"\n') 
+                notes = azr[j]["properties"]["notes"]
+                # notes=notes.encode('utf-8', 'ignore')
+                notes = notes.replace('"', '\\"')
+                fr.write('\t notes = "' + notes + '"\n')
             except KeyError:
                 pass
-            fr.write('\t scope = "'+ scope + '"\n')
-        # tags block
+            fr.write('\t scope = "' + scope + '"\n')
+            # tags block
 
-    # tags block       
+            # tags block
             try:
-                mtags=azr[j]["tags"]
+                mtags = azr[j]["tags"]
                 fr.write('tags = { \n')
                 for key in mtags.keys():
-                    tval=mtags[key]
-                    #fr.write(('\t "' + key + '"="' + tval + '"\n'))
+                    tval = mtags[key]
+                    # fr.write(('\t "' + key + '"="' + tval + '"\n'))
                     fr.write(('\t "' + key + '"="' + tval + '"\n'))
                 fr.write('}\n')
             except KeyError:
                 pass
 
-            #try:
+            # try:
             #    mtags=azr[j]["tags"]
-            #except:
+            # except:
             #    mtags="{}"
-            #tcount=len(mtags)-1
-            #if tcount > 1 :
+            # tcount=len(mtags)-1
+            # if tcount > 1 :
             #    fr.write('tags = { \n')
             #    print tcount
             #    for key in mtags.keys():
@@ -117,22 +115,22 @@ def azurerm_management_lock(crf,cde,crg,headers,requests,sub,json,az2tfmess,cldu
             #        fr.write(('\t "' + key + '"="' + tval + '"\n'))
             #    #print(json.dumps(mtags, indent=4, separators=(',', ': ')))
             #    fr.write('}\n')
-            
-            fr.write('}\n') 
+
+            fr.write('}\n')
             fr.close()  # close .tf file
 
             if cde:
-                with open(rfilename) as f: 
-                    print (f.read())
+                with open(rfilename) as f:
+                    print(f.read())
 
-            tfrm.write('terraform state rm '+tfp+'.'+rg+'__'+rname + '__' + sn + '\n')
-            
-            tfcomm='terraform import '+tfp+'.'+rg+'__'+rname + '__'+ sn + ' "'+id+'"\n'
-            tfim.write('echo "importing ' + str(j) + ' of ' + str(count-1) + '"' + '\n')
-            #tfcomm=tfcomm.encode('utf-8', 'ignore')
-            tfim.write(tfcomm)  
+            tfrm.write('terraform state rm ' + terraform_resource_name + '.' + rg + '__' + rname + '__' + sn + '\n')
 
-        # end for
+            tfcomm = 'terraform import ' + terraform_resource_name + '.' + rg + '__' + rname + '__' + sn + ' "' + id + '"\n'
+            tfim.write('echo "importing ' + str(j) + ' of ' + str(count - 1) + '"' + '\n')
+            # tfcomm=tfcomm.encode('utf-8', 'ignore')
+            tfim.write(tfcomm)
+
+            # end for
         tfrm.close()
         tfim.close()
-        #end management locks
+        # end management locks

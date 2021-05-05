@@ -35,9 +35,8 @@ def azurerm_virtual_machine(crf, cde, crg, headers, requests, sub, json, az2tfme
                 print(json.dumps(azr[i], indent=4, separators=(',', ': ')))
 
             rname = get_tf_compatible_name(name)
-            prefix = get_tf_config_file_path(tfp,  tf_rg,  rname)
-            rfilename = prefix + ".tf"
-            fr = open(rfilename, 'w')
+            rfilename = get_tf_config_file_path(tfp,  tf_rg,  rname)
+            fr = open(rfilename, 'a')
             fr.write(az2tfmess)
             fr.write('resource ' + tfp + ' ' + tf_rg + '__' + rname + ' {\n')
             fr.write('\t name = "' + name + '"\n')

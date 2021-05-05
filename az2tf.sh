@@ -104,6 +104,8 @@ rm -f terraform*.backup
 rm -f tf*.sh
 cp ../../stub/*.tf .
 
+# todo: add a while loop
+
 #pyc1="python2.7 ../../scripts/az2tf.py -c $mycld -s $mysub "
 pyc1="python3 ../../scripts/az2tf.py -c $mycld -s $mysub "
 if [ "$g" != "" ]; then

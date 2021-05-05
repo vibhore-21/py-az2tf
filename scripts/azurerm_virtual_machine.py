@@ -1,4 +1,8 @@
 # azurerm_virtual_machine
+from utils.utils import get_tf_compatible_name, get_tf_config_file_path, get_tf_import_state_script_path, \
+    get_tf_state_rm_file_path, get_tf_compatible_rg
+
+
 def azurerm_virtual_machine(crf, cde, crg, headers, requests, sub, json, az2tfmess, cldurl):
     tfp = "azurerm_virtual_machine"
     tcode = "290-"
@@ -12,10 +16,6 @@ def azurerm_virtual_machine(crf, cde, crg, headers, requests, sub, json, az2tfme
         r = requests.get(url, headers=headers, params=params)
         azr = r.json()["value"]
 
-        tfrmf = tcode + tfp + "-staterm.sh"
-        tfimf = tcode + tfp + "-stateimp.sh"
-        tfrm = open(tfrmf, 'a')
-        tfim = open(tfimf, 'a')
         print("# " + tfp, )
         count = len(azr)
         print(count)
@@ -24,24 +24,22 @@ def azurerm_virtual_machine(crf, cde, crg, headers, requests, sub, json, az2tfme
             name = azr[i]["name"]
             loc = azr[i]["location"]
             id = azr[i]["id"]
-            rg = id.split("/")[4].replace(".", "-").lower()
-            if rg[0].isdigit(): rg = "rg_" + rg
             rgs = id.split("/")[4]
-
             if crg is not None:
                 if rgs.lower() != crg.lower():
-                    continue  # back to for
+                    continue
+
+            tf_rg = get_tf_compatible_rg(rgs)
 
             if cde:
                 print(json.dumps(azr[i], indent=4, separators=(',', ': ')))
 
-            rname = name.replace(".", "-")
-            prefix = tfp + "." + rg + '__' + rname
-            # print prefix
+            rname = get_tf_compatible_name(name)
+            prefix = get_tf_config_file_path(tfp,  tf_rg,  rname)
             rfilename = prefix + ".tf"
             fr = open(rfilename, 'w')
             fr.write(az2tfmess)
-            fr.write('resource ' + tfp + ' ' + rg + '__' + rname + ' {\n')
+            fr.write('resource ' + tfp + ' ' + tf_rg + '__' + rname + ' {\n')
             fr.write('\t name = "' + name + '"\n')
             fr.write('\t location = "' + loc + '"\n')
             fr.write('\t resource_group_name = "' + rgs + '"\n')
@@ -81,7 +79,8 @@ def azurerm_virtual_machine(crf, cde, crg, headers, requests, sub, json, az2tfme
                         8].replace(".", "-")
                     vmnetrg = azr[i]["properties"]["networkProfile"]["networkInterfaces"][j]["id"].split("/")[
                         4].replace(".", "-").lower()
-                    if vmnetrg[0].isdigit(): vmnetrg = "rg_" + vmnetrg
+                    if vmnetrg[0].isdigit():
+                        vmnetrg = "rg_" + vmnetrg
                     try:
                         vmnetpri = azr[i]["properties"]["networkProfile"]["networkInterfaces"][j]["properties"][
                             "primary"]
@@ -286,12 +285,12 @@ def azurerm_virtual_machine(crf, cde, crg, headers, requests, sub, json, az2tfme
                             ddmdrg = datadisks[j]["managedDisk"]["id"].split("/")[4].replace(".", "-").lower()
                             ## ddmdrg  from cut is upper case - not good
                             ## probably safe to assume managed disk in same RG as VM ??
-                            # check id lowercase rg = ddmdrg if so use rg
+                            # check id lowercase tf_rg = ddmdrg if so use tf_rg
                             #
                             # if not will have to get from terraform state - convert ddmdrg to lc and terraform state output
                             #
 
-                            fr.write('\t managed_disk_id = azurerm_managed_disk.' + rg + '__' + ddmdid + '.id \n')
+                            fr.write('\t managed_disk_id = azurerm_managed_disk.' + tf_rg + '__' + ddmdid + '.id \n')
                         except KeyError:
                             pass
 
@@ -333,14 +332,20 @@ def azurerm_virtual_machine(crf, cde, crg, headers, requests, sub, json, az2tfme
                 with open(rfilename) as f:
                     print(f.read())
 
-            tfrm.write('terraform state rm ' + tfp + '.' + rg + '__' + rname + '\n')
+            # update tf rm file
+            tfrmf = get_tf_state_rm_file_path(tfp, tcode, tf_rg)
+            tfrm = open(tfrmf, 'a')
+            tfrm.write('terraform state rm ' + tfp + '.' + tf_rg + '__' + rname + '\n')
+            tfrm.close()
 
+            # update tf import file
+            tfimf = get_tf_import_state_script_path(tfp, tcode, tf_rg)
+            tfim = open(tfimf, 'a')
             tfim.write('echo "importing ' + str(i) + ' of ' + str(count - 1) + '"' + '\n')
-            tfcomm = 'terraform import ' + tfp + '.' + rg + '__' + rname + ' ' + id + '\n'
+            tfcomm = 'terraform import ' + tfp + '.' + tf_rg + '__' + rname + ' ' + id + '\n'
             tfim.write(tfcomm)
-
+            tfim.close()
             # end for i loop
 
-        tfrm.close()
-        tfim.close()
+
     # end stub

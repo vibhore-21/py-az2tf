@@ -1,6 +1,7 @@
 import sys
 
-from utils.utils import get_tf_state_rm_file_path, get_tf_import_state_script_path
+from utils.utils import get_tf_state_rm_file_path, get_tf_import_state_script_path, \
+    get_tf_config_file_path, get_tf_compatible_rg
 
 
 def azurerm_resource_group(crf, cde, filter_rg, headers, requests, sub, json, az2tfmess, cldurl):
@@ -19,6 +20,7 @@ def azurerm_resource_group(crf, cde, filter_rg, headers, requests, sub, json, az
     """
     isrun = False
     tfp = "azurerm_resource_group"
+    tf_code = "001"
     if crf in tfp:
 
         print('# ' + tfp, )
@@ -39,31 +41,19 @@ def azurerm_resource_group(crf, cde, filter_rg, headers, requests, sub, json, az
             rg = name
             loc = rgs[j]["location"]
             id = rgs[j]["id"]
-
-            tf_rm_path = get_tf_state_rm_file_path(resource_name=tfp, resource_group=rg)
-            tf_imp_path = get_tf_import_state_script_path(resource_name=tfp, resource_group=rg)
-            tf_rm = open(tf_rm_path, 'a')
-            tf_imp = open(tf_imp_path, 'a')
-
             if filter_rg is not None:
-                if name.lower() != filter_rg.lower():
+                if rg.lower() != filter_rg.lower():
                     continue
 
-            rname = name.replace(".", "-")
-            if rg[0].isdigit():
-                rg = "rg_" + rg
-
-            if rname[0].isdigit():
-                rname = "rg_" + rname
-            prefix = tfp + "." + rname
-
-            rfilename = prefix + ".tf"
+            tf_rg = get_tf_compatible_rg(name)
+            tf_name = tf_rg
+            rfilename = get_tf_config_file_path(tfp, tf_name, 'rg')
             if isrun:
                 fr = sys.stdout
             else:
-                fr = open(rfilename, 'w')
+                fr = open(rfilename, 'a')
             fr.write("")
-            fr.write('resource "' + tfp + '" "' + rname + '" {\n')
+            fr.write('resource "' + tfp + '" "' + tf_name + '" {\n')
             fr.write('\t name = "' + name + '"\n')
             fr.write('\t location = "' + loc + '"\n')
 
@@ -90,12 +80,19 @@ def azurerm_resource_group(crf, cde, filter_rg, headers, requests, sub, json, az
                 with open(rfilename) as f:
                     print(f.read())
 
-            tf_rm.write('terraform state rm ' + tfp + '.' + rname + '\n')
+            # write state rm file
+            tf_rm_path = get_tf_state_rm_file_path(resource_type=tfp, prefix=tf_code, resource_group=tf_rg)
+            tf_rm = open(tf_rm_path, 'a')
+            tf_rm.write('terraform state rm ' + tfp + '.' + tf_name + '\n')
+            tf_rm.close()
+
+            # write state imp file
+            tf_imp_path = get_tf_import_state_script_path(resource_type=tfp, prefix=tf_code, resource_group=tf_rg)
+            tf_imp = open(tf_imp_path, 'a')
             tf_imp.write('echo "importing ' + str(j) + ' of ' + str(count - 1) + '"' + '\n')
-            tfcomm = 'terraform import ' + tfp + '.' + rname + ' ' + id + '\n'
+            tfcomm = 'terraform import ' + tfp + '.' + tf_name + ' ' + id + '\n'
             tf_imp.write(tfcomm)
+            tf_imp.close()
 
         # end for
-        tf_rm.close()
-        tf_imp.close()
         # end resource group

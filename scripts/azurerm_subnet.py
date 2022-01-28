@@ -53,9 +53,15 @@ def azurerm_subnet(crf, cde, crg, headers, requests, sub, json, az2tfmess, cldur
                 fr.write('\t virtual_network_name = "' + vnetname + '"\n')
                 fr.write('\t resource_group_name = "' + rgs + '"\n')
 
+<<<<<<< HEAD
                 sprefix = subs[j]["properties"]["addressPrefix"]
                 fr.write('\t address_prefix = "' + sprefix + '"\n')
                 rtbid = "null"
+=======
+                sprefix=subs[j]["properties"]["addressPrefix"]
+                fr.write('\t address_prefixes = ["' +  sprefix + '"]\n')
+                rtbid="null"
+>>>>>>> 8b54a1e877667259fb2322cd5b63396fd30f2751
                 try:
                     seps = subs[j]["properties"]["serviceEndpoints"]
                     kcount = len(seps)
